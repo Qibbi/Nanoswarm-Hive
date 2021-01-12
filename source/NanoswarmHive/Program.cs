@@ -1,15 +1,152 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Nanocore;
+using Nanocore.Core.Diagnostics;
+using Nanocore.Native;
+using Nanocore.Sage;
+using System;
 using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 
 namespace NanoswarmHive
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private sealed class InternalTraceWrite : IDisposable
         {
+            public InternalTraceWrite(string source, TraceEventType eventType)
+            {
+                Console.Write($"[{DateTime.Now:HH:mm:ss:ffff}] [{source}] ");
+                switch (eventType)
+                {
+                    case TraceEventType.Critical:
+                    case TraceEventType.Error:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write($"{eventType}: ");
+                        break;
+                    case TraceEventType.Warning:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write($"{eventType}: ");
+                        break;
+                    case TraceEventType.Information:
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        break;
+                    default:
+                        Console.ForegroundColor = ConsoleColor.DarkGreen;
+                        break;
+                }
+            }
+
+            public void Dispose()
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+            }
+        }
+
+        private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Program), "Starts the game and initializes the hook.");
+        private static bool _isConsoleCancel = false;
+
+        private static void TraceWrite(string source, TraceEventType eventType, string message)
+        {
+            using (IDisposable disposable = new InternalTraceWrite(source, eventType))
+            {
+                Console.WriteLine(message);
+            }
+        }
+
+        private static void ConsoleCancel(object sender, ConsoleCancelEventArgs args)
+        {
+            _isConsoleCancel = true;
+            args.Cancel = true;
+        }
+
+        public static int Main(string[] args)
+        {
+#if DEBUG
+            IntPtr hConsole = IntPtr.Zero;
+            if (Kernel32.AllocConsole())
+            {
+                hConsole = Kernel32.GetConsoleWindow();
+                User32.SetLayeredWindowAttributes(hConsole, 0u, 225, 2);
+            }
+            User32.ShowWindow(hConsole, 5);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Tracer.TraceWrite += TraceWrite;
+#endif
+            Console.CancelKeyPress += ConsoleCancel;
+            Kernel32.Win32FindDataW findFileData = new Kernel32.Win32FindDataW();
+            IntPtr hSearch = Kernel32.FindFirstFileW("lotrsec.big", ref findFileData);
+            if (hSearch == (IntPtr)(-1))
+            {
+                StringBuilder fileName = new StringBuilder(Kernel32.MAX_PATH);
+                Kernel32.GetModuleFileNameW(IntPtr.Zero, fileName, Kernel32.MAX_PATH);
+                for (int idx = fileName.Length - 1; idx != 0; --idx)
+                {
+                    if (fileName[idx] == '\\')
+                    {
+                        fileName[idx] = '\0';
+                        break;
+                    }
+                }
+                Kernel32.SetCurrentDirectoryW(fileName.ToString());
+            }
+            else
+            {
+                Kernel32.FindClose(hSearch);
+            }
+            Kernel32.StartupInfoW si = new Kernel32.StartupInfoW(true);
+            Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
+            int overallTries = 0;
+            int tries = 0;
+            Registry registry = new Registry();
+            while (!_isConsoleCancel)
+            {
+                ++tries;
+                if (tries > 20)
+                {
+                    if (MessageBox.Show("Windows caching interferred with injecting into the game, do you want to try again?", "Error", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    {
+                        overallTries += tries;
+                        tries = 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                try
+                {
+                    Kernel32.CreateProcessW(null, $"\"{System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game")}\" {string.Join(" ", args)} -config \"{System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\"",
+                                            IntPtr.Zero,
+                                            IntPtr.Zero,
+                                            true,
+                                            4,
+                                            IntPtr.Zero,
+                                            null,
+                                            ref si,
+                                            ref pi);
+                    EZHook.Inject(pi.DwProcessId, "Nanocore.dll", pi.DwThreadId);
+                }
+                catch (ApplicationException ex)
+                {
+                    if ((uint)ex.HResult != 0x80131600u)
+                    {
+                        _tracer.TraceException(ex.Message);
+                        MessageBox.Show(ex.Message);
+                        break;
+                    }
+                    _tracer.TraceInfo($"Failure attempt #{tries}. {ex.Message}");
+                    Kernel32.TerminateProcess(pi.HProcess, -1);
+                    Kernel32.ResumeThread(pi.HThread);
+                    Kernel32.WaitForSingleObject(pi.HProcess, -1);
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    _tracer.TraceException(ex.Message);
+                    MessageBox.Show(ex.Message);
+                }
+                break;
+            }
+            return overallTries + tries;
         }
     }
 }
