@@ -6,3 +6,6 @@ The solution contains 2 projects: NanoswarmHive and Nanocore. NanoswarmHive is t
 
 ### Nanocore
 The Nanohook class is the main entry point of the injection. Fixes will be placed in the RA3 folder.
+
+### Current fixes
+ContainFix: There's a nullpointer derefence if an object with a weapon has a contain and the player is trying to force fire outside the weapon range.
