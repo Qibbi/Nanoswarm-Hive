@@ -108,7 +108,9 @@ namespace Nanocore
 
         public void Run(RemoteHooking.IContext context, int threadId, ExecutableType exeType)
         {
+#if DEBUG
             System.Diagnostics.Debugger.Launch();
+#endif
             _tracer.TraceNote("Trying to hook executable detected as '{0}'.", exeType);
             System.Diagnostics.Process process = System.Diagnostics.Process.GetCurrentProcess();
             if (exeType == ExecutableType.Steam)
