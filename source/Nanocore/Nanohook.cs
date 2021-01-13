@@ -76,7 +76,7 @@ namespace Nanocore
                 {
                     continue;
                 }
-                foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Static))
+                foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
                 {
                     HookFunctionAttribute hookFunctionAttribute = fieldInfo.GetCustomAttribute<HookFunctionAttribute>();
                     if (hookFunctionAttribute is null)
@@ -99,7 +99,21 @@ namespace Nanocore
                         continue;
                     }
                     fieldInfo.SetValue(null, Marshal.GetDelegateForFunctionPointer(fnPtr, fieldInfo.FieldType));
-                    LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, type.GetMethod(hookFunctionAttribute.FunctionName)), null);
+                    MethodInfo fn = null;
+                    foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+                    {
+                        if (method.Name.Equals(hookFunctionAttribute.FunctionName)) // TODO: find a better way to check which funciton to use
+                        {
+                            fn = method;
+                            break;
+                        }
+                    }
+                    if (fn is null)
+                    {
+                        _tracer.TraceWarning("Hook {0}.{1} cannot find the function, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                        continue;
+                    }
+                    LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, fn), null);
                     hook.ThreadACL.SetExclusiveACL(new[] { 0 });
                     _tracer.TraceNote("Hook {0}.{1} enabled.", type.Name, hookFunctionAttribute.FunctionName);
                 }
