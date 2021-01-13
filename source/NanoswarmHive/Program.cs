@@ -3,6 +3,7 @@ using Nanocore.Core.Diagnostics;
 using Nanocore.Native;
 using Nanocore.Sage;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 
@@ -92,6 +93,35 @@ namespace NanoswarmHive
             {
                 Kernel32.FindClose(hSearch);
             }
+            string config = null;
+            string modconifg = null;
+            List<string> argList = new List<string>(args.Length);
+            for (int idx = 0; idx < args.Length; ++idx)
+            {
+                if (string.Equals(args[idx], "-config"))
+                {
+                    if (idx == args.Length - 1)
+                    {
+                        MessageBox.Show("Invalid config parameter. A path needs to be set.");
+                        return -1;
+                    }
+                    config = args[idx++ + 1];
+                }
+                if (string.Equals(args[idx], "-modconfig"))
+                {
+                    if (idx == args.Length - 1)
+                    {
+                        MessageBox.Show("Invalid modconfig parameter. A path needs to be set.");
+                        return -1;
+                    }
+                    modconifg = args[idx++ + 1];
+                }
+                else
+                {
+                    argList.Add(args[idx]);
+                }
+            }
+            args = argList.ToArray();
             Kernel32.StartupInfoW si = new Kernel32.StartupInfoW(true);
             Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
             int overallTries = 0;
@@ -139,7 +169,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\"",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{config ?? System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" {(modconifg is null ? string.Empty : $"-modconfig \"{modconifg}\"")}",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
