@@ -1,3 +1,6 @@
+# Important
+This currently only works for RA3 on Origin. Steam has different offsets, have to get them, and make a check for the steam version (check for appid), and the disc version is securom protected, which makes injection pretty much impossible.
+
 # Nanoswarm-Hive
 This is a collection of fixes for RA3, also includes cnc-online connection functionality
 
