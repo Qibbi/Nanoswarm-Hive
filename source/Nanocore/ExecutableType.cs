@@ -5,6 +5,7 @@
         Unknown = -1,
         Steam,
         Origin,
-        Retail
+        Retail,
+        ReLOADeD
     }
 }

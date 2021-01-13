@@ -128,19 +128,27 @@ namespace NanoswarmHive
             int tries = 0;
             Registry registry = new Registry();
             string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
-            long executableSize = new System.IO.FileInfo(executablePath).Length;
             ExecutableType executableType = ExecutableType.Unknown;
-            switch (executableSize)
+            using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
             {
-                case 9658368:
-                    executableType = ExecutableType.Steam;
-                    break;
-                case 9306112:
-                    executableType = ExecutableType.Origin;
-                    break;
-                case 16504080:
-                    executableType = ExecutableType.Retail;
-                    break;
+                byte[] buffer = new byte[stream.Length];
+                stream.Read(buffer, 0, buffer.Length);
+                uint hash = Nanocore.Core.FastHash.GetHashCode(buffer);
+                switch (hash)
+                {
+                    case 0xCFAAD44Bu:
+                        executableType = ExecutableType.Steam;
+                        break;
+                    case 0xE7AF6A35u:
+                        executableType = ExecutableType.Origin;
+                        break;
+                    case 0xA05DEB39:
+                        executableType = ExecutableType.Retail;
+                        break;
+                    case 0xBFE68CAD:
+                        executableType = ExecutableType.ReLOADeD;
+                        break;
+                }
             }
             if (executableType == ExecutableType.Unknown)
             {

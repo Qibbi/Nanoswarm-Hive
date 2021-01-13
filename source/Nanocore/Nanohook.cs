@@ -87,6 +87,7 @@ namespace Nanocore
                     switch (executableType)
                     {
                         case ExecutableType.Steam:
+                        case ExecutableType.ReLOADeD:
                             fnPtr = new IntPtr(hookFunctionAttribute.Steam);
                             break;
                         case ExecutableType.Origin:
