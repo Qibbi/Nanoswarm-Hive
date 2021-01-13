@@ -4,12 +4,14 @@ using System.Runtime.InteropServices;
 
 namespace Nanocore.RA3
 {
+    [Hook]
     public static class ContainFix
     {
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         private delegate int SomethingDelegate(IntPtr hInstance, IntPtr hA1, IntPtr hA2, IntPtr hA3, IntPtr hA4);
 
-        private static readonly SomethingDelegate _something = Marshal.GetDelegateForFunctionPointer<SomethingDelegate>(new IntPtr(0x00797CC0));
+        [HookFunction(nameof(SomethingFunc), Origin = 0x00797CC0, Steam = 0x00759680)]
+        private static readonly SomethingDelegate _something;
 
         private static int SomethingFunc(IntPtr hInstance, IntPtr hA1, IntPtr hA2, IntPtr hA3, IntPtr hA4)
         {

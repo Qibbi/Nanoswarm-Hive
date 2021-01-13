@@ -97,6 +97,31 @@ namespace NanoswarmHive
             int overallTries = 0;
             int tries = 0;
             Registry registry = new Registry();
+            string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+            long executableSize = new System.IO.FileInfo(executablePath).Length;
+            ExecutableType executableType = ExecutableType.Unknown;
+            switch (executableSize)
+            {
+                case 9658368:
+                    executableType = ExecutableType.Steam;
+                    break;
+                case 9306112:
+                    executableType = ExecutableType.Origin;
+                    break;
+                case 16504080:
+                    executableType = ExecutableType.Retail;
+                    break;
+            }
+            if (executableType == ExecutableType.Unknown)
+            {
+                MessageBox.Show("A version of the game is installed. Please get the game from an official source.");
+                return -1;
+            }
+            else if (executableType == ExecutableType.Retail)
+            {
+                MessageBox.Show("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
+                return -1;
+            }
             while (!_isConsoleCancel)
             {
                 ++tries;
@@ -114,7 +139,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game")}\" {string.Join(" ", args)} -config \"{System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\"",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\"",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
@@ -123,7 +148,7 @@ namespace NanoswarmHive
                                             null,
                                             ref si,
                                             ref pi);
-                    EZHook.Inject(pi.DwProcessId, "Nanocore.dll", pi.DwThreadId);
+                    EZHook.Inject(pi.DwProcessId, "Nanocore.dll", pi.DwThreadId, executableType);
                 }
                 catch (ApplicationException ex)
                 {

@@ -2,6 +2,8 @@
 using Nanocore.Core.Diagnostics;
 using Nanocore.Native;
 using System;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Nanocore
 {
@@ -9,7 +11,7 @@ namespace Nanocore
     {
         private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Nanohook), "Main entry point for injection.");
 
-        public Nanohook(RemoteHooking.IContext context, int threadId)
+        public Nanohook(RemoteHooking.IContext context, int threadId, ExecutableType executableType)
         {
 #if DEBUG
             IntPtr consoleWindow = IntPtr.Zero;
@@ -64,13 +66,60 @@ namespace Nanocore
         }
 #endif
 
-        public void Run(RemoteHooking.IContext context, int threadId)
+        private void InitializeHooks(ExecutableType executableType)
         {
-            CncOnline.ModifyPublicKey(System.Diagnostics.Process.GetCurrentProcess());
+            // TODO: this is a perfect thing for code generation, but that's still in preview
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            foreach (Type type in assembly.DefinedTypes)
+            {
+                if (type.GetCustomAttribute<HookAttribute>() is null)
+                {
+                    continue;
+                }
+                foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Static))
+                {
+                    HookFunctionAttribute hookFunctionAttribute = fieldInfo.GetCustomAttribute<HookFunctionAttribute>();
+                    if (hookFunctionAttribute is null)
+                    {
+                        continue;
+                    }
+                    IntPtr fnPtr = IntPtr.Zero;
+                    switch (executableType)
+                    {
+                        case ExecutableType.Steam:
+                            fnPtr = new IntPtr(hookFunctionAttribute.Steam);
+                            break;
+                        case ExecutableType.Origin:
+                            fnPtr = new IntPtr(hookFunctionAttribute.Origin);
+                            break;
+                    }
+                    if (fnPtr == IntPtr.Zero)
+                    {
+                        _tracer.TraceWarning("Hook {0}.{1} doesn't have a valid function pointer for the executable, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                        continue;
+                    }
+                    fieldInfo.SetValue(null, Marshal.GetDelegateForFunctionPointer(fnPtr, fieldInfo.FieldType));
+                    LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, type.GetMethod(hookFunctionAttribute.FunctionName)), null);
+                    hook.ThreadACL.SetExclusiveACL(new[] { 0 });
+                    _tracer.TraceNote("Hook {0}.{1} enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                }
+            }
+        }
+
+        public void Run(RemoteHooking.IContext context, int threadId, ExecutableType exeType)
+        {
+            System.Diagnostics.Debugger.Launch();
+            _tracer.TraceNote("Trying to hook executable detected as '{0}'.", exeType);
+            System.Diagnostics.Process process = System.Diagnostics.Process.GetCurrentProcess();
+            if (exeType == ExecutableType.Steam)
+            {
+                Steam.ModifyEP(process);
+            }
+            CncOnline.ModifyPublicKey(process);
             LocalHook getHostByName = LocalHook.Create(NativeLibrary.GetExport(Ws2_32.HModule, "gethostbyname"), new Ws2_32.GetHostByNameDelegate(CncOnline.GetHostByName), null);
             getHostByName.ThreadACL.SetExclusiveACL(new[] { 0 });
 
-            RA3.ContainFix.HookFix();
+            InitializeHooks(exeType);
 
             IntPtr thread = Kernel32.OpenThread(0x00100002, true, threadId);
             if (thread != IntPtr.Zero)

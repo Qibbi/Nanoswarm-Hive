@@ -60,7 +60,6 @@ namespace Nanocore
             byte* pCurrentModule = (byte*)module.BaseAddress.ToPointer();
             using (Stream stream = new UnmanagedMemoryStream(pCurrentModule, module.ModuleMemorySize, module.ModuleMemorySize, FileAccess.ReadWrite))
             {
-                _tracer.TraceInfo($"Stream has write access: {stream.CanWrite}");
                 byte[] buffer = new byte[stream.Length];
                 if (stream.Read(buffer, 0, buffer.Length) != buffer.Length)
                 {
