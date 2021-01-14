@@ -78,45 +78,83 @@ namespace Nanocore
                 }
                 foreach (FieldInfo fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
                 {
-                    HookFunctionAttribute hookFunctionAttribute = fieldInfo.GetCustomAttribute<HookFunctionAttribute>();
-                    if (hookFunctionAttribute is null)
+                    if (fieldInfo.GetCustomAttribute<HookFunctionAttribute>() is HookFunctionAttribute hookFunctionAttribute)
                     {
-                        continue;
-                    }
-                    IntPtr fnPtr = IntPtr.Zero;
-                    switch (executableType)
-                    {
-                        case ExecutableType.Steam:
-                        case ExecutableType.ReLOADeD:
-                            fnPtr = new IntPtr(hookFunctionAttribute.Steam);
-                            break;
-                        case ExecutableType.Origin:
-                            fnPtr = new IntPtr(hookFunctionAttribute.Origin);
-                            break;
-                    }
-                    if (fnPtr == IntPtr.Zero)
-                    {
-                        _tracer.TraceWarning("Hook {0}.{1} doesn't have a valid function pointer for the executable, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
-                        continue;
-                    }
-                    fieldInfo.SetValue(null, Marshal.GetDelegateForFunctionPointer(fnPtr, fieldInfo.FieldType));
-                    MethodInfo fn = null;
-                    foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
-                    {
-                        if (method.Name.Equals(hookFunctionAttribute.FunctionName)) // TODO: find a better way to check which funciton to use
+                        IntPtr fnPtr = IntPtr.Zero;
+                        switch (executableType)
                         {
-                            fn = method;
-                            break;
+                            case ExecutableType.Steam:
+                            case ExecutableType.ReLOADeD:
+                                fnPtr = new IntPtr(hookFunctionAttribute.Steam);
+                                break;
+                            case ExecutableType.Origin:
+                                fnPtr = new IntPtr(hookFunctionAttribute.Origin);
+                                break;
                         }
+                        if (fnPtr == IntPtr.Zero)
+                        {
+                            _tracer.TraceWarning("Hook {0}.{1} doesn't have a valid function pointer for the executable, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                            continue;
+                        }
+                        fieldInfo.SetValue(null, Marshal.GetDelegateForFunctionPointer(fnPtr, fieldInfo.FieldType));
+                        MethodInfo fn = null;
+                        foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+                        {
+                            if (method.Name.Equals(hookFunctionAttribute.FunctionName)) // TODO: find a better way to check which funciton to use
+                            {
+                                fn = method;
+                                break;
+                            }
+                        }
+                        if (fn is null)
+                        {
+                            _tracer.TraceWarning("Hook {0}.{1} cannot find the function, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                            continue;
+                        }
+                        LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, fn), null);
+                        hook.ThreadACL.SetExclusiveACL(new[] { 0 });
+                        _tracer.TraceNote("Hook {0}.{1} enabled.", type.Name, hookFunctionAttribute.FunctionName);
                     }
-                    if (fn is null)
+                    else if (fieldInfo.GetCustomAttribute<GameFunctionAttribute>() is GameFunctionAttribute gameFunctionAttribute)
                     {
-                        _tracer.TraceWarning("Hook {0}.{1} cannot find the function, hook not enabled.", type.Name, hookFunctionAttribute.FunctionName);
-                        continue;
+                        IntPtr fnPtr = IntPtr.Zero;
+                        switch (executableType)
+                        {
+                            case ExecutableType.Steam:
+                            case ExecutableType.ReLOADeD:
+                                fnPtr = new IntPtr(gameFunctionAttribute.Steam);
+                                break;
+                            case ExecutableType.Origin:
+                                fnPtr = new IntPtr(gameFunctionAttribute.Origin);
+                                break;
+                        }
+                        if (fnPtr == IntPtr.Zero)
+                        {
+                            _tracer.TraceError("Function {0}.{1} doesn't have a valid function pointer for the executable, this will cause a crash if called.", type.Name, fieldInfo.Name);
+                            continue;
+                        }
+                        fieldInfo.SetValue(null, Marshal.GetDelegateForFunctionPointer(fnPtr, fieldInfo.FieldType));
                     }
-                    LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, fn), null);
-                    hook.ThreadACL.SetExclusiveACL(new[] { 0 });
-                    _tracer.TraceNote("Hook {0}.{1} enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                    else if (fieldInfo.GetCustomAttribute<GamePointerAttribute>() is GamePointerAttribute gamePointerAttribute)
+                    {
+                        IntPtr fnPtr = IntPtr.Zero;
+                        switch (executableType)
+                        {
+                            case ExecutableType.Steam:
+                            case ExecutableType.ReLOADeD:
+                                fnPtr = new IntPtr(gamePointerAttribute.Steam);
+                                break;
+                            case ExecutableType.Origin:
+                                fnPtr = new IntPtr(gamePointerAttribute.Origin);
+                                break;
+                        }
+                        if (fnPtr == IntPtr.Zero)
+                        {
+                            _tracer.TraceError("Pointer {0}.{1} doesn't have a valid pointer for the executable, this will cause a crash if dereferenced.", type.Name, fieldInfo.Name);
+                            continue;
+                        }
+                        fieldInfo.SetValue(null, fnPtr);
+                    }
                 }
             }
         }

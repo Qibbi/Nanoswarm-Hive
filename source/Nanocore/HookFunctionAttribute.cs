@@ -2,7 +2,7 @@
 
 namespace Nanocore
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Field)]
     public class HookFunctionAttribute : Attribute
     {
         public int Origin { get; set; }
