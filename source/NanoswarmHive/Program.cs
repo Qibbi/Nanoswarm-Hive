@@ -1,9 +1,13 @@
 ﻿using Nanocore;
 using Nanocore.Core.Diagnostics;
+using Nanocore.Core.Language;
 using Nanocore.Native;
 using Nanocore.Sage;
+using NanoswarmHive.Presentation.View;
+using NanoswarmHive.Presentation.ViewModel;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Windows;
 
@@ -59,6 +63,7 @@ namespace NanoswarmHive
             args.Cancel = true;
         }
 
+        [STAThread]
         public static int Main(string[] args)
         {
 #if DEBUG
@@ -70,9 +75,17 @@ namespace NanoswarmHive
             }
             User32.ShowWindow(hConsole, 5);
             Console.ForegroundColor = ConsoleColor.Green;
-            Tracer.TraceWrite += TraceWrite;
-#endif
             Console.CancelKeyPress += ConsoleCancel;
+#endif
+            Tracer.TraceWrite += TraceWrite;
+            bool useUI = false;
+            for (int idx = 0; idx < args.Length; ++idx)
+            {
+                if (string.Equals(args[idx], "-ui"))
+                {
+                    useUI = true;
+                }
+            }
             Kernel32.Win32FindDataW findFileData = new Kernel32.Win32FindDataW();
             IntPtr hSearch = Kernel32.FindFirstFileW("lotrsec.big", ref findFileData);
             if (hSearch == (IntPtr)(-1))
@@ -93,6 +106,38 @@ namespace NanoswarmHive
             {
                 Kernel32.FindClose(hSearch);
             }
+            Registry registry = new Registry();
+            if (useUI)
+            {
+                string csfPath = Path.Combine(Environment.CurrentDirectory, "Launcher", $"{registry.Language}.csf");
+                if (File.Exists(csfPath))
+                {
+                    TranslationManager.Current.LoadStrings(csfPath);
+                }
+                else
+                {
+                    MessageBox.Show($"Language pack '{registry.Language}' is not installed.");
+                    return -1;
+                }
+                DispatcherService dispatcherService = new DispatcherService(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+                ViewModelServiceProvider serviceProvider = new ViewModelServiceProvider(new List<object>
+                {
+                    dispatcherService,
+                    registry
+                });
+                MainWindowViewModel mainViewModel = new MainWindowViewModel(serviceProvider);
+                mainViewModel.LoadBackground();
+                MainWindow mainWindow = new MainWindow(mainViewModel)
+                {
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                mainWindow.ShowDialog();
+                if (!mainViewModel.IsStartGame())
+                {
+                    return 0;
+                }
+            }
+            // TODO: use splash screen
             string config = null;
             string modconifg = null;
             List<string> argList = new List<string>(args.Length);
@@ -126,7 +171,6 @@ namespace NanoswarmHive
             Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
             int overallTries = 0;
             int tries = 0;
-            Registry registry = new Registry();
             string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
             ExecutableType executableType = ExecutableType.Unknown;
             using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))

@@ -5,6 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{BD152AAF-0720-4943-A146-218C42942908}</ProjectGuid>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>WinExe</OutputType>
     <RootNamespace>NanoswarmHive</RootNamespace>
     <AssemblyName>NanoswarmHive</AssemblyName>
@@ -38,17 +39,44 @@
     <StartupObject>NanoswarmHive.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Presentation\Commands\AnonymousCommand.cs" />
+    <Compile Include="Presentation\Commands\CommandBase.cs" />
+    <Compile Include="Presentation\Commands\ICommandBase.cs" />
+    <Compile Include="Presentation\Commands\UtilityCommands.cs" />
+    <Compile Include="Presentation\Controls\ButtonScrollbar.cs" />
+    <Compile Include="Presentation\Controls\MarkdownTextBlock.cs" />
+    <Compile Include="Presentation\Controls\TranslatedTextBlock.cs" />
+    <Compile Include="Presentation\Controls\WindowButtonInfo.cs" />
+    <Compile Include="Presentation\KnownBoxes.cs" />
+    <Compile Include="Presentation\Services\DialogResultType.cs" />
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MainWindowViewModel.cs" />
+    <Compile Include="Presentation\Services\IDispatcherService.cs" />
+    <Compile Include="Presentation\ViewModel\DispatcherViewModel.cs" />
+    <Compile Include="Presentation\ViewModel\IViewModelServiceProvider.cs" />
+    <Compile Include="Presentation\ViewModel\NullServiceProvider.cs" />
+    <Compile Include="Presentation\ViewModel\ServiceRegistrationEventArgs.cs" />
+    <Compile Include="Presentation\ViewModel\ViewModelBase.cs" />
+    <Compile Include="Presentation\ViewModel\ViewModelServiceProvider.cs" />
+    <Compile Include="Presentation\View\DispatcherService.cs" />
+    <Compile Include="Presentation\XamlMarkdown.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -60,6 +88,24 @@
       <Project>{77bddcd4-b228-418b-98fd-fafe9077cbd0}</Project>
       <Name>Nanocore</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\button.bmp" />
+    <Content Include="Resources\click.wav" />
+    <Content Include="Resources\hover.wav" />
+    <Content Include="Resources\scroll.wav" />
+    <Resource Include="Resources\scrollr.bmp" />
+    <Resource Include="Resources\scrolll.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Presentation\Themes\Basic.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

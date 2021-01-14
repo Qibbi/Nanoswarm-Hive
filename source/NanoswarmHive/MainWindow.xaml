@@ -1,0 +1,27 @@
+﻿<Window x:Class="NanoswarmHive.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NanoswarmHive"
+        xmlns:c="clr-namespace:NanoswarmHive.Presentation.Controls"
+        mc:Ignorable="d"
+        ResizeMode="CanMinimize"
+        SizeToContent="WidthAndHeight"
+        d:DataContext="{d:DesignInstance local:MainWindowViewModel}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Presentation/Themes/Basic.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Image Source="{Binding BackgroundImage}" Width="800" Height="600" Grid.RowSpan="2" />
+        <c:ButtonScrollbar Margin="0,30" ItemsSource="{Binding Buttons}" Grid.Row="1" />
+    </Grid>
+</Window>
