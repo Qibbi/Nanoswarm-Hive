@@ -173,6 +173,8 @@ namespace Nanocore
             CncOnline.ModifyPublicKey(process);
             LocalHook getHostByName = LocalHook.Create(NativeLibrary.GetExport(Ws2_32.HModule, "gethostbyname"), new Ws2_32.GetHostByNameDelegate(CncOnline.GetHostByName), null);
             getHostByName.ThreadACL.SetExclusiveACL(new[] { 0 });
+            LocalHook send = LocalHook.Create(NativeLibrary.GetExport(Ws2_32.HModule, "send"), new Ws2_32.SendDelegate(CncOnline.Send), null);
+            send.ThreadACL.SetExclusiveACL(new[] { 0 });
 
             InitializeHooks(exeType);
 

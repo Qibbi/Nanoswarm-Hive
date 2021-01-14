@@ -14,6 +14,7 @@ namespace Nanocore.Native
             HModule = NativeLibrary.Load(_moduleName);
             // WinSock
             GetHostByName = Marshal.GetDelegateForFunctionPointer<GetHostByNameDelegate>(NativeLibrary.GetExport(HModule, "gethostbyname"));
+            Send = Marshal.GetDelegateForFunctionPointer<SendDelegate>(NativeLibrary.GetExport(HModule, "send"));
         }
     }
 }

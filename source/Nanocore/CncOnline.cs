@@ -46,6 +46,7 @@ namespace Nanocore
                                                                           0xD0, 0x40, 0x26, 0x32, 0xC1, 0xA1, 0x80, 0xAD,
                                                                           0x0D, 0x07, 0xE5, 0xAD, 0x93, 0x0D, 0x2D, 0xF5};
         #endregion
+        private static readonly string _updateServer = "http.server.cnc-online.net"; // TODO: make this a setting
 
         public static unsafe bool ModifyPublicKey(System.Diagnostics.Process process)
         {
@@ -88,11 +89,8 @@ namespace Nanocore
             switch (host)
             {
                 case "servserv.generals.ea.com":
-                    host = "http.server.cnc-online.net";
-                    _tracer.TraceInfo($"Redirecting to: '{host}'.");
-                    break;
                 case "na.llnet.eadownloads.ea.com":
-                    host = "http.server.cnc-online.net";
+                    host = _updateServer;
                     _tracer.TraceInfo($"Redirecting to: '{host}'.");
                     break;
                 case "bfme.fesl.ea.com":
@@ -169,6 +167,25 @@ namespace Nanocore
                     break;
             }
             return Ws2_32.GetHostByName(host);
+        }
+
+        public static int Send(IntPtr s, IntPtr buf, int len, int flags)
+        {
+            string str = Marshal.PtrToStringAnsi(buf, len);
+            if (str.StartsWith("GET ") || str.StartsWith("HEAD "))
+            {
+                // str = str.Replace("/servserv/cnc3/", "/tsrgame/servserv/");
+                // str = str.Replace("Host: servserv.generals.ea.com", "Host: rising.cnc-source.com");
+                str = str.Replace("Host: na.llnet.eadownloads.ea.com", $"Host: {_updateServer}");
+                _tracer.TraceNote($"Sending '{str}'.");
+                IntPtr pStr = Marshal.StringToHGlobalAnsi(str);
+                int result = Ws2_32.Send(s, pStr, str.Length, flags);
+                Marshal.FreeHGlobal(pStr);
+                return result;
+            }
+            _tracer.TraceNote($"{nameof(Send)} from 0x{EasyHook.HookRuntimeInfo.ReturnAddress.ToInt32():X8}");
+            // _tracer.TraceNote($"Sending unmodified '{str}'.");
+            return Ws2_32.Send(s, buf, len, flags);
         }
     }
 }

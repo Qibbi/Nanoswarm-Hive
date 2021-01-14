@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 namespace Nanocore.RA3
 {
     [Hook]
-    public static class LuaOnDamagedFix
+    public static class LuaPushGameObjectFix
     {
-        private static readonly Tracer _tracer = Tracer.GetTracer(nameof(LuaOnDamagedFix), "Fixes lua OnDamage event");
+        private static readonly Tracer _tracer = Tracer.GetTracer(nameof(LuaPushGameObjectFix), "Fixes lua push game object for events");
 
         private delegate void StringFormatDelegate(ref IntPtr destination, IntPtr strFormat, int param);
 
@@ -67,7 +67,7 @@ namespace Nanocore.RA3
 
         private static readonly IntPtr _objIdFormat;
 
-        static LuaOnDamagedFix()
+        static LuaPushGameObjectFix()
         {
             _objIdFormat = Marshal.StringToHGlobalAnsi("ObjID#%08x");
         }
