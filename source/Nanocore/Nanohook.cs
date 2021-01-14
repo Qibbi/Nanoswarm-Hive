@@ -23,12 +23,11 @@ namespace Nanocore
             User32.ShowWindow(consoleWindow, 5);
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Title = "Nanocore Debug Console";
+#endif
             Tracer.TraceWrite += Log;
             Tracer.SetTraceLevel(6);
-#endif
         }
 
-#if DEBUG
         private static void Log(string source, TraceEventType eventType, string message)
         {
             Console.Write(DateTime.Now.ToString("hh:mm:ss.fff "));
@@ -64,7 +63,6 @@ namespace Nanocore
                     break;
             }
         }
-#endif
 
         private void InitializeHooks(ExecutableType executableType)
         {
