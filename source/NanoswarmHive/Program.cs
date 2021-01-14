@@ -137,15 +137,18 @@ namespace NanoswarmHive
                 switch (hash)
                 {
                     case 0xCFAAD44Bu:
+                    case 0xE6D223E6u:
+                    case 0xCF5817CCu:
                         executableType = ExecutableType.Steam;
                         break;
                     case 0xE7AF6A35u:
+                    case 0x2F121290u:
                         executableType = ExecutableType.Origin;
                         break;
-                    case 0xA05DEB39:
+                    case 0xA05DEB39: // this has the 4gb thing applied, need to check the original
                         executableType = ExecutableType.Retail;
                         break;
-                    case 0xBFE68CAD:
+                    case 0xBFE68CAD: // should I care? this is mostly here because origins and reloaded exe have the same size
                         executableType = ExecutableType.ReLOADeD;
                         break;
                 }
