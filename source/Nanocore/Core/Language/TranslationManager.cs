@@ -8,7 +8,7 @@ namespace Nanocore.Core.Language
     {
         public static TranslationManager Current { get; } = new TranslationManager();
 
-        private Csf _csf;
+        private Csf _csf = Csf.Empty;
 
         public event EventHandler LanguageChanged;
 

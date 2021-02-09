@@ -10,13 +10,14 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using SystemCommands = System.Windows.SystemCommands;
 
 namespace NanoswarmHive
 {
     public class MainWindowViewModel : ADispatcherViewModel
     {
         private DialogResultType _dialogResult;
-        private ImageSource _imageSource;
+        private ImageSource _backgroundImageSource;
         private IEnumerable<AViewModelBase> _buttons;
 
         internal Window _window;
@@ -83,7 +84,7 @@ namespace NanoswarmHive
         };
 
         public DialogResultType DialogResult => _dialogResult;
-        public ImageSource BackgroundImage { get => _imageSource; set => SetValue(ref _imageSource, value); }
+        public ImageSource BackgroundImage { get => _backgroundImageSource; set => SetValue(ref _backgroundImageSource, value); }
         public IEnumerable<AViewModelBase> Buttons { get => _buttons; set => SetValue(ref _buttons, value); }
 
         public MainWindowViewModel(IViewModelServiceProvider serviceProvider) : base(serviceProvider)

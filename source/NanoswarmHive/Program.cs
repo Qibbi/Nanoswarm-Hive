@@ -3,13 +3,16 @@ using Nanocore.Core.Diagnostics;
 using Nanocore.Core.Language;
 using Nanocore.Native;
 using Nanocore.Sage;
+using NanoswarmHive.Presentation.Dialogs;
+using NanoswarmHive.Presentation.Services;
 using NanoswarmHive.Presentation.View;
 using NanoswarmHive.Presentation.ViewModel;
+using NanoswarmHive.Presentation.Windows;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Windows;
+using System.Windows.Threading;
 
 namespace NanoswarmHive
 {
@@ -48,6 +51,8 @@ namespace NanoswarmHive
 
         private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Program), "Starts the game and initializes the hook.");
         private static bool _isConsoleCancel = false;
+        private static string[] _args;
+        private static App _app;
 
         private static void TraceWrite(string source, TraceEventType eventType, string message)
         {
@@ -63,121 +68,92 @@ namespace NanoswarmHive
             args.Cancel = true;
         }
 
-        [STAThread]
-        public static int Main(string[] args)
+        private static async void Startup()
         {
-#if DEBUG
-            IntPtr hConsole = IntPtr.Zero;
-            if (Kernel32.AllocConsole())
-            {
-                hConsole = Kernel32.GetConsoleWindow();
-                User32.SetLayeredWindowAttributes(hConsole, 0u, 225, 2);
-            }
-            User32.ShowWindow(hConsole, 5);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.CancelKeyPress += ConsoleCancel;
-#endif
-            Tracer.TraceWrite += TraceWrite;
             bool useUI = false;
-            for (int idx = 0; idx < args.Length; ++idx)
+            for (int idx = 0; idx < _args.Length; ++idx)
             {
-                if (string.Equals(args[idx], "-ui"))
+                if (string.Equals(_args[idx], "-ui"))
                 {
                     useUI = true;
                 }
             }
-            Kernel32.Win32FindDataW findFileData = new Kernel32.Win32FindDataW();
-            IntPtr hSearch = Kernel32.FindFirstFileW("lotrsec.big", ref findFileData);
-            if (hSearch == (IntPtr)(-1))
+            Registry registry = new Registry();
+            DispatcherService dispatcherService = new DispatcherService(Dispatcher.CurrentDispatcher);
+            MessageBoxService messageBoxService = new MessageBoxService(dispatcherService, registry.DisplayName);
+            string csfPath = Path.Combine(Environment.CurrentDirectory, "Launcher", $"{registry.Language}.csf");
+            if (File.Exists(csfPath))
             {
-                StringBuilder fileName = new StringBuilder(Kernel32.MAX_PATH);
-                Kernel32.GetModuleFileNameW(IntPtr.Zero, fileName, Kernel32.MAX_PATH);
-                for (int idx = fileName.Length - 1; idx != 0; --idx)
-                {
-                    if (fileName[idx] == '\\')
-                    {
-                        fileName[idx] = '\0';
-                        break;
-                    }
-                }
-                Kernel32.SetCurrentDirectoryW(fileName.ToString());
+                TranslationManager.Current.LoadStrings(csfPath);
             }
             else
             {
-                Kernel32.FindClose(hSearch);
+                await messageBoxService.MessageBox($"Language pack '{registry.Language}' is not installed.");
+                _app.Shutdown(-1);
             }
-            Registry registry = new Registry();
             if (useUI)
             {
-                string csfPath = Path.Combine(Environment.CurrentDirectory, "Launcher", $"{registry.Language}.csf");
-                if (File.Exists(csfPath))
-                {
-                    TranslationManager.Current.LoadStrings(csfPath);
-                }
-                else
-                {
-                    MessageBox.Show($"Language pack '{registry.Language}' is not installed.");
-                    return -1;
-                }
-                DispatcherService dispatcherService = new DispatcherService(System.Windows.Threading.Dispatcher.CurrentDispatcher);
                 ViewModelServiceProvider serviceProvider = new ViewModelServiceProvider(new List<object>
                 {
                     dispatcherService,
+                    messageBoxService,
                     registry
                 });
                 MainWindowViewModel mainViewModel = new MainWindowViewModel(serviceProvider);
                 mainViewModel.LoadBackground();
                 MainWindow mainWindow = new MainWindow(mainViewModel)
                 {
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                    WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
                 };
                 mainWindow.ShowDialog();
                 if (!mainViewModel.IsStartGame())
                 {
-                    return 0;
+                    _app.Shutdown();
                 }
             }
             // TODO: use splash screen
             string config = null;
             string modconifg = null;
-            List<string> argList = new List<string>(args.Length);
-            for (int idx = 0; idx < args.Length; ++idx)
+            List<string> argList = new List<string>(_args.Length);
+            for (int idx = 0; idx < _args.Length; ++idx)
             {
-                if (string.Equals(args[idx], "-config"))
+                if (string.Equals(_args[idx], "-config"))
                 {
-                    if (idx == args.Length - 1)
+                    if (idx == _args.Length - 1)
                     {
-                        MessageBox.Show("Invalid config parameter. A path needs to be set.");
-                        return -1;
+                        await messageBoxService.MessageBox("Invalid config parameter. A path needs to be set.");
+                        _app.Shutdown(-1);
                     }
-                    config = args[idx++ + 1];
+                    config = _args[idx++ + 1];
                 }
-                if (string.Equals(args[idx], "-modconfig"))
+                if (string.Equals(_args[idx], "-modconfig"))
                 {
-                    if (idx == args.Length - 1)
+                    if (idx == _args.Length - 1)
                     {
-                        MessageBox.Show("Invalid modconfig parameter. A path needs to be set.");
-                        return -1;
+                        await messageBoxService.MessageBox("Invalid modconfig parameter. A path needs to be set.");
+                        _app.Shutdown(-1);
                     }
-                    modconifg = args[idx++ + 1];
+                    modconifg = _args[idx++ + 1];
                 }
                 else
                 {
-                    argList.Add(args[idx]);
+                    argList.Add(_args[idx]);
                 }
             }
-            args = argList.ToArray();
+            _args = argList.ToArray();
             Kernel32.StartupInfoW si = new Kernel32.StartupInfoW(true);
             Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
             int overallTries = 0;
             int tries = 0;
             string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
             ExecutableType executableType = ExecutableType.Unknown;
+            uint hash;
             using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
             {
                 byte[] buffer = new byte[stream.Length];
                 stream.Read(buffer, 0, buffer.Length);
-                uint hash = Nanocore.Core.FastHash.GetHashCode(buffer);
+                hash = Nanocore.Core.FastHash.GetHashCode(buffer);
+                hash = 0xDEADBEEF;
                 switch (hash)
                 {
                     case 0xCFAAD44Bu:
@@ -199,20 +175,20 @@ namespace NanoswarmHive
             }
             if (executableType == ExecutableType.Unknown)
             {
-                MessageBox.Show("A version of the game is installed. Please get the game from an official source.");
-                return -1;
+                await messageBoxService.MessageBox($"An unknown version of the game is installed. Please get the game from an official source.\n\rIf your game is from an official source please [write me a message on Discord](https://discordapp.com/users/173165401864142858/) with this hash: {hash:X08}");
+                _app.Shutdown(-1);
             }
             else if (executableType == ExecutableType.Retail)
             {
-                MessageBox.Show("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
-                return -1;
+                await messageBoxService.MessageBox("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
+                _app.Shutdown(-1);
             }
             while (!_isConsoleCancel)
             {
                 ++tries;
                 if (tries > 20)
                 {
-                    if (MessageBox.Show("Windows caching interferred with injecting into the game, do you want to try again?", "Error", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    if (await messageBoxService.MessageBox("Windows caching interferred with injecting into the game, do you want to try again?", "Error", MessageBoxButtonType.YesNo) == MessageBoxResultType.Yes)
                     {
                         overallTries += tries;
                         tries = 1;
@@ -224,7 +200,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{config ?? System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" {(modconifg is null ? string.Empty : $"-modconfig \"{modconifg}\"")}",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", _args)} -config \"{config ?? System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" {(modconifg is null ? string.Empty : $"-modconfig \"{modconifg}\"")}",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
@@ -240,7 +216,7 @@ namespace NanoswarmHive
                     if ((uint)ex.HResult != 0x80131600u)
                     {
                         _tracer.TraceException(ex.Message);
-                        MessageBox.Show(ex.Message);
+                        await messageBoxService.MessageBox(ex.Message);
                         break;
                     }
                     _tracer.TraceInfo($"Failure attempt #{tries}. {ex.Message}");
@@ -252,11 +228,57 @@ namespace NanoswarmHive
                 catch (Exception ex)
                 {
                     _tracer.TraceException(ex.Message);
-                    MessageBox.Show(ex.Message);
+                    await messageBoxService.MessageBox(ex.Message);
                 }
                 break;
             }
-            return overallTries + tries;
+            _app.Shutdown(overallTries + tries);
+        }
+
+        [STAThread]
+        public static int Main(string[] args)
+        {
+            _args = args;
+#if DEBUG
+            IntPtr hConsole = IntPtr.Zero;
+            if (Kernel32.AllocConsole())
+            {
+                hConsole = Kernel32.GetConsoleWindow();
+                User32.SetLayeredWindowAttributes(hConsole, 0u, 225, 2);
+            }
+            User32.ShowWindow(hConsole, 5);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.CancelKeyPress += ConsoleCancel;
+#endif
+            Tracer.TraceWrite += TraceWrite;
+            Kernel32.Win32FindDataW findFileData = new Kernel32.Win32FindDataW();
+            IntPtr hSearch = Kernel32.FindFirstFileW("lotrsec.big", ref findFileData);
+            if (hSearch == (IntPtr)(-1))
+            {
+                StringBuilder fileName = new StringBuilder(Kernel32.MAX_PATH);
+                Kernel32.GetModuleFileNameW(IntPtr.Zero, fileName, Kernel32.MAX_PATH);
+                for (int idx = fileName.Length - 1; idx != 0; --idx)
+                {
+                    if (fileName[idx] == '\\')
+                    {
+                        fileName[idx] = '\0';
+                        break;
+                    }
+                }
+                Kernel32.SetCurrentDirectoryW(fileName.ToString());
+            }
+            else
+            {
+                Kernel32.FindClose(hSearch);
+            }
+            Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
+            dispatcher.InvokeAsync(Startup);
+            using (new WindowManager(dispatcher))
+            {
+                _app = new App();
+                _app.InitializeComponent();
+                return _app.Run();
+            }
         }
     }
 }

@@ -54,21 +54,50 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Presentation\Commands\AnonymousCommand.cs" />
     <Compile Include="Presentation\Commands\CommandBase.cs" />
     <Compile Include="Presentation\Commands\ICommandBase.cs" />
+    <Compile Include="Presentation\Commands\SystemCommand.cs" />
+    <Compile Include="Presentation\Commands\SystemCommands.cs" />
     <Compile Include="Presentation\Commands\UtilityCommands.cs" />
     <Compile Include="Presentation\Controls\ButtonScrollbar.cs" />
     <Compile Include="Presentation\Controls\MarkdownTextBlock.cs" />
+    <Compile Include="Presentation\Controls\ModalWindow.cs" />
     <Compile Include="Presentation\Controls\TranslatedTextBlock.cs" />
     <Compile Include="Presentation\Controls\WindowButtonInfo.cs" />
+    <Compile Include="Presentation\Dialogs\MessageBoxService.cs" />
+    <Compile Include="Presentation\Drawing\HslColor.cs" />
+    <Compile Include="Presentation\Extensions\DependencyObjectExtensions.cs" />
+    <Compile Include="Presentation\Interop\SafeClipboard.cs" />
     <Compile Include="Presentation\KnownBoxes.cs" />
+    <Compile Include="Presentation\MarkupExtensions\ImageRecolorExtension.cs" />
     <Compile Include="Presentation\Services\DialogResultType.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindowViewModel.cs" />
     <Compile Include="Presentation\Services\IDispatcherService.cs" />
+    <Compile Include="Presentation\Services\IMessageBoxService.cs" />
+    <Compile Include="Presentation\Services\IModalDialog.cs" />
+    <Compile Include="Presentation\Services\IModalDialogInternal.cs" />
+    <Compile Include="Presentation\Themes\IconTheme.cs" />
+    <Compile Include="Presentation\Themes\IconThemeSelector.cs" />
+    <Compile Include="Presentation\Themes\ImageThemingUtilities.cs" />
+    <Compile Include="Presentation\Themes\ThemeController.cs" />
+    <Compile Include="Presentation\ValueConverters\Chained.cs" />
+    <Compile Include="Presentation\ValueConverters\ConverterHelper.cs" />
+    <Compile Include="Presentation\ValueConverters\ObjectToBool.cs" />
+    <Compile Include="Presentation\ValueConverters\OneWayValueConverter.cs" />
+    <Compile Include="Presentation\ValueConverters\ValueConverterBase.cs" />
+    <Compile Include="Presentation\ValueConverters\VisibleOrCollapsed.cs" />
     <Compile Include="Presentation\ViewModel\DispatcherViewModel.cs" />
     <Compile Include="Presentation\ViewModel\IViewModelServiceProvider.cs" />
     <Compile Include="Presentation\ViewModel\NullServiceProvider.cs" />
@@ -76,6 +105,14 @@
     <Compile Include="Presentation\ViewModel\ViewModelBase.cs" />
     <Compile Include="Presentation\ViewModel\ViewModelServiceProvider.cs" />
     <Compile Include="Presentation\View\DispatcherService.cs" />
+    <Compile Include="Presentation\Windows\DialogButtonInfo.cs" />
+    <Compile Include="Presentation\Windows\HWndHelper.cs" />
+    <Compile Include="Presentation\Windows\MessageDialogBase.cs" />
+    <Compile Include="Presentation\Windows\DialogHelper.cs" />
+    <Compile Include="Presentation\Windows\MessageBox.cs" />
+    <Compile Include="Presentation\Windows\NativeHelper.cs" />
+    <Compile Include="Presentation\Windows\WindowInfo.cs" />
+    <Compile Include="Presentation\Windows\WindowManager.cs" />
     <Compile Include="Presentation\XamlMarkdown.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -99,6 +136,10 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="MainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Presentation\Resources\VectorResources.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

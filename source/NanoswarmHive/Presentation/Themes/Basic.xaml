@@ -4,10 +4,29 @@
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                     xmlns:c="clr-namespace:NanoswarmHive.Presentation.Controls"
                     xmlns:cmd="clr-namespace:NanoswarmHive.Presentation.Commands"
+                    xmlns:me="clr-namespace:NanoswarmHive.Presentation.MarkupExtensions"
+                    xmlns:p="clr-namespace:NanoswarmHive.Presentation"
+                    xmlns:vc="clr-namespace:NanoswarmHive.Presentation.ValueConverters"
+                    xmlns:w="clr-namespace:NanoswarmHive.Presentation.Windows"
                     mc:Ignorable="d">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Presentation/Resources/VectorResources.xaml" />
+    </ResourceDictionary.MergedDictionaries>
     <BitmapImage x:Key="ScrollL" UriSource="../../Resources/scrolll.bmp" />
     <BitmapImage x:Key="ButtonImage" UriSource="../../Resources/button.bmp" />
     <BitmapImage x:Key="ScrollR" UriSource="../../Resources/scrollr.bmp" />
+    <Style TargetType="{x:Type FlowDocument}">
+        <Setter Property="FontFamily" Value="{DynamicResource {x:Static SystemFonts.MessageFontFamilyKey}}" />
+        <Setter Property="FontSize" Value="{DynamicResource {x:Static SystemFonts.MessageFontSizeKey}}" />
+        <Setter Property="TextAlignment" Value="Left" />
+    </Style>
+    <Style TargetType="{x:Type FlowDocument}" x:Key="{x:Static p:XamlMarkdown.DocumentStyleKey}" BasedOn="{StaticResource {x:Type FlowDocument}}">
+        <Setter Property="PagePadding" Value="2,0" />
+    </Style>
+    <Style TargetType="{x:Type Inline}" x:Key="{x:Static p:XamlMarkdown.CodeStyleKey}">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontWeight" Value="Normal" />
+    </Style>
     <Style TargetType="{x:Type c:MarkdownTextBlock}">
         <Setter Property="HyperlinkCommand" Value="{x:Static cmd:UtilityCommands.OpenHyperlinkCommand}" />
         <Setter Property="Template">
@@ -173,10 +192,212 @@
                                             </VisualStateGroup>
                                         </VisualStateManager.VisualStateGroups>
                                     </Grid>
-                                </ControlTemplate></Button.Template>
+                                </ControlTemplate>
+                            </Button.Template>
                         </Button>
                     </StackPanel>
                 </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type Window}" x:Key="TranslatedWindow">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="BorderThickness" Value="1,1,1,1" />
+        <Setter Property="WindowChrome.WindowChrome">
+            <Setter.Value>
+                <WindowChrome CornerRadius="0" CaptionHeight="25" />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ResizeMode" Value="CanResize" />
+        <Setter Property="WindowStyle" Value="None" />
+        <Setter Property="AllowsTransparency" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Window}">
+                    <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Top">
+                                <DockPanel x:Name="TitleBar"
+                                           LastChildFill="True"
+                                           VerticalAlignment="Top"
+                                           WindowChrome.IsHitTestVisibleInChrome="False">
+                                    <Button Content="{me:ImageRecolor {StaticResource VectorCloseWindow}, 10, 10, NearestNeighbor}"
+                                            Command="{x:Static cmd:SystemCommands.CloseWindowCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                            IsTabStop="False"
+                                            Width="45"
+                                            Height="25"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            WindowChrome.IsHitTestVisibleInChrome="True" />
+                                    <Button x:Name="MaximizeButton"
+                                            Content="{me:ImageRecolor {StaticResource VectorMaximizeWindow}, 10, 10, NearestNeighbor}"
+                                            Command="{x:Static cmd:SystemCommands.MaximizeWindowCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                            IsTabStop="False"
+                                            Width="45"
+                                            Height="25"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            WindowChrome.IsHitTestVisibleInChrome="True" />
+                                    <Button x:Name="RestoreButton"
+                                            Content="{me:ImageRecolor {StaticResource VectorRestoreWindow}, 10, 10, NearestNeighbor}"
+                                            Command="{x:Static cmd:SystemCommands.RestoreWindowCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                            IsTabStop="False"
+                                            Width="45"
+                                            Height="25"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            WindowChrome.IsHitTestVisibleInChrome="True" />
+                                    <Button x:Name="MinimizeButton"
+                                            Content="{me:ImageRecolor {StaticResource VectorMinimizeWindow}, 10, 10, NearestNeighbor}"
+                                            Command="{x:Static cmd:SystemCommands.MinimizeWindowCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                            IsTabStop="False"
+                                            Width="45"
+                                            Height="25"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            WindowChrome.IsHitTestVisibleInChrome="True" />
+                                    <TextBlock Text="{TemplateBinding Title}" Margin="6" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Border>
+                            <AdornerDecorator>
+                                <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="16" DockPanel.Dock="Bottom" />
+                            </AdornerDecorator>
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="ResizeMode" Value="NoResize">
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="MinimizeButton" />
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="MaximizeButton" />
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="RestoreButton" />
+                        </Trigger>
+                        <Trigger Property="ResizeMode" Value="CanMinimize">
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="MaximizeButton" />
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="RestoreButton" />
+                        </Trigger>
+                        <Trigger Property="WindowState" Value="Maximized">
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="MaximizeButton" />
+                            <Setter Property="WindowChrome.WindowChrome">
+                                <Setter.Value>
+                                    <WindowChrome ResizeBorderThickness="0" CornerRadius="0" CaptionHeight="25" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="WindowState" Value="Normal">
+                            <Setter Property="Visibility" Value="Collapsed" TargetName="RestoreButton" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type w:AMessageDialogBase}" x:Key="MessageDialogStyle" BasedOn="{StaticResource TranslatedWindow}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="MinWidth" Value="320" />
+        <Setter Property="MinHeight" Value="120" />
+        <Setter Property="MaxHeight" Value="760" />
+        <Setter Property="SizeToContent" Value="WidthAndHeight" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="ResizeMode" Value="NoResize" />
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <DockPanel LastChildFill="True" Margin="10">
+                        <ItemsControl x:Name="ButtonsControl"
+                                      Margin="10,10,10,0"
+                                      HorizontalAlignment="Center"
+                                      DockPanel.Dock="Bottom"
+                                      ItemsSource="{Binding ButtonsSource, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid IsItemsHost="True" Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <ItemContainerTemplate DataType="{x:Type w:DialogButtonInfo}">
+                                    <Button d:DataContext="{d:DesignInstance w:DialogButtonInfo}"
+                                            Margin="5,0"
+                                            Padding="20,3"
+                                            MinWidth="100"
+                                            Command="{Binding ButtonCommand, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                            CommandParameter="{Binding Result}"
+                                            Content="{Binding Content}"
+                                            IsCancel="{Binding IsCancel}"
+                                            IsDefault="{Binding IsDefault}" />
+                                </ItemContainerTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Expander DockPanel.Dock="Bottom"
+                                  IsExpanded="False"
+                                  MaxWidth="800"
+                                  MaxHeight="480"
+                                  Visibility="{Binding Details, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}, Converter={vc:Chained {vc:ObjectToBool}, {vc:VisibleOrCollapsed}}}">
+                            <Expander.Header>
+                                <c:TranslatedTextBlock DisplayText="GUI:Details" />
+                            </Expander.Header>
+                            <Expander.Content>
+                                <ContentPresenter Content="{Binding Details, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  ContentTemplate="{Binding DetailsTemplate, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  ContentTemplateSelector="{Binding DetailsTemplateSelector, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  Cursor="{Binding Cursor, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  MinWidth="{Binding ActualWidth, ElementName=ButtonsControl}"
+                                                  HorizontalAlignment="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                                  VerticalAlignment="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}" />
+                            </Expander.Content>
+                        </Expander>
+                        <ContentPresenter Content="{Binding}"
+                                          ContentTemplate="{Binding MessageTemplate, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                          ContentTemplateSelector="{Binding MessageTemplateSelector, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                          Cursor="{Binding Cursor, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                          Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                          MinWidth="{Binding ActualWidth, ElementName=ButtonsControl}"
+                                          HorizontalAlignment="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}"
+                                          VerticalAlignment="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type w:AMessageDialogBase}}}" />
+                    </DockPanel>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type w:MessageBox}" BasedOn="{StaticResource MessageDialogStyle}">
+        <Setter Property="MessageTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <DockPanel LastChildFill="True"
+                               MinWidth="{Binding MinWidth, RelativeSource={RelativeSource AncestorType={x:Type ContentPresenter}}, FallbackValue=320}"
+                               MaxWidth="800"
+                               MaxHeight="{Binding MaxHeight, RelativeSource={RelativeSource AncestorType={x:Type ContentPresenter}}, FallbackValue=720}">
+                        <Image DockPanel.Dock="Left"
+                               Source="{Binding Image, RelativeSource={RelativeSource AncestorType={x:Type w:MessageBox}}}"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Margin="5"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Width="{Binding RelativeSource={RelativeSource self}, Path=Source.{BitmapSource.PixelWidth}}"
+                               Height="{Binding RelativeSource={RelativeSource self}, Path=Source.{BitmapSource.PixelHeight}}"
+                               Visibility="{Binding Image, RelativeSource={RelativeSource AncestorType={x:Type w:MessageBox}}, Converter={vc:Chained {vc:ObjectToBool}, {vc:VisibleOrCollapsed}}}" />
+                        <c:MarkdownTextBlock Text="{Binding}" />
+                    </DockPanel>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="DetailsTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Content>
+                            <c:MarkdownTextBlock Text="{Binding}" />
+                        </ScrollViewer.Content>
+                    </ScrollViewer>
+                </DataTemplate>
             </Setter.Value>
         </Setter>
     </Style>

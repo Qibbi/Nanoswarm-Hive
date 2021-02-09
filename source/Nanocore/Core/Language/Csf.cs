@@ -34,6 +34,7 @@ namespace Nanocore.Core.Language
         private const int _magicLWideString = 0x53545257;
 
         private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Csf), "Handles string files");
+        public static Csf Empty { get; } = new Csf();
 
         private readonly Dictionary<string, Dictionary<string, string>> _strings;
 
@@ -41,6 +42,11 @@ namespace Nanocore.Core.Language
         public int NumLabels { get; }
         public int NumStrings { get; }
         public LanguageType LanguageType { get; }
+
+        private Csf()
+        {
+            _strings = new Dictionary<string, Dictionary<string, string>> { { "GUI", new Dictionary<string, string> { { "Ok", "Ok" } } } };
+        }
 
         public Csf(ASerializationStream stream)
         {
