@@ -12,6 +12,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace NanoswarmHive
@@ -50,7 +52,6 @@ namespace NanoswarmHive
         }
 
         private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Program), "Starts the game and initializes the hook.");
-        private static bool _isConsoleCancel = false;
         private static string[] _args;
         private static App _app;
 
@@ -62,13 +63,7 @@ namespace NanoswarmHive
             }
         }
 
-        private static void ConsoleCancel(object sender, ConsoleCancelEventArgs args)
-        {
-            _isConsoleCancel = true;
-            args.Cancel = true;
-        }
-
-        private static async void Startup()
+        private static async Task Startup()
         {
             bool useUI = false;
             for (int idx = 0; idx < _args.Length; ++idx)
@@ -78,7 +73,11 @@ namespace NanoswarmHive
                     useUI = true;
                 }
             }
-            Registry registry = new Registry();
+            useUI = true;
+            Registry registry = new Registry
+            {
+                DisplayName = "Command & Conquer Generals Evolution"
+            };
             DispatcherService dispatcherService = new DispatcherService(Dispatcher.CurrentDispatcher);
             MessageBoxService messageBoxService = new MessageBoxService(dispatcherService, registry.DisplayName);
             string csfPath = Path.Combine(Environment.CurrentDirectory, "Launcher", $"{registry.Language}.csf");
@@ -90,28 +89,42 @@ namespace NanoswarmHive
             {
                 await messageBoxService.MessageBox($"Language pack '{registry.Language}' is not installed.");
                 _app.Shutdown(-1);
+                return;
             }
-            if (useUI)
-            {
-                ViewModelServiceProvider serviceProvider = new ViewModelServiceProvider(new List<object>
+            ViewModelServiceProvider serviceProvider = new ViewModelServiceProvider(new List<object>
                 {
                     dispatcherService,
                     messageBoxService,
                     registry
                 });
+            if (useUI)
+            {
                 MainWindowViewModel mainViewModel = new MainWindowViewModel(serviceProvider);
                 mainViewModel.LoadBackground();
                 MainWindow mainWindow = new MainWindow(mainViewModel)
                 {
-                    WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
                 };
-                mainWindow.ShowDialog();
-                if (!mainViewModel.IsStartGame())
-                {
-                    _app.Shutdown();
-                }
+                Application.Current.MainWindow = mainWindow;
+                WindowManager.ShowMainWindow(mainWindow);
             }
-            // TODO: use splash screen
+            else
+            {
+                await Launch(serviceProvider, false);
+            }
+        }
+
+        public static async Task Launch(IViewModelServiceProvider serviceProvider, bool useGui)
+        {
+            MessageBoxService messageBoxService = serviceProvider.Get<MessageBoxService>();
+            Registry registry = serviceProvider.Get<Registry>();
+            SplashScreenViewModel splashViewModel = new SplashScreenViewModel(serviceProvider);
+            splashViewModel.LoadSplash();
+            SplashScreen splashScreen = new SplashScreen(splashViewModel)
+            {
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+            WindowManager.ShowBlockingWindow(splashScreen);
             string config = null;
             string modconifg = null;
             List<string> argList = new List<string>(_args.Length);
@@ -123,6 +136,7 @@ namespace NanoswarmHive
                     {
                         await messageBoxService.MessageBox("Invalid config parameter. A path needs to be set.");
                         _app.Shutdown(-1);
+                        return;
                     }
                     config = _args[idx++ + 1];
                 }
@@ -132,6 +146,7 @@ namespace NanoswarmHive
                     {
                         await messageBoxService.MessageBox("Invalid modconfig parameter. A path needs to be set.");
                         _app.Shutdown(-1);
+                        return;
                     }
                     modconifg = _args[idx++ + 1];
                 }
@@ -145,47 +160,58 @@ namespace NanoswarmHive
             Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
             int overallTries = 0;
             int tries = 0;
-            string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+            string executablePath = Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
             ExecutableType executableType = ExecutableType.Unknown;
             uint hash;
-            using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            using (Stream stream = new FileStream(executablePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 byte[] buffer = new byte[stream.Length];
                 stream.Read(buffer, 0, buffer.Length);
                 hash = Nanocore.Core.FastHash.GetHashCode(buffer);
-                hash = 0xDEADBEEF;
                 switch (hash)
                 {
                     case 0xCFAAD44Bu:
                     case 0xE6D223E6u:
                     case 0xCF5817CCu:
+                    case 0xA5D6B4D8u:
+                    case 0xCC7D2897u:
+                    case 0xE92FD5BCu:
                         executableType = ExecutableType.Steam;
                         break;
                     case 0xE7AF6A35u:
                     case 0x2F121290u:
+                    case 0x15A0610Du:
                         executableType = ExecutableType.Origin;
                         break;
-                    case 0xA05DEB39: // this has the 4gb thing applied, need to check the original
+                    case 0x2187AF73u:
+                    case 0xA05DEB39u:
                         executableType = ExecutableType.Retail;
                         break;
-                    case 0xBFE68CAD: // should I care? this is mostly here because origins and reloaded exe have the same size
+                    case 0xBFE68CADu: // should I care? this is mostly here because origins and reloaded exe have the same size
+                    case 0xD55E5467u:
                         executableType = ExecutableType.ReLOADeD;
                         break;
                 }
             }
             if (executableType == ExecutableType.Unknown)
             {
-                await messageBoxService.MessageBox($"An unknown version of the game is installed. Please get the game from an official source.\n\rIf your game is from an official source please [write me a message on Discord](https://discordapp.com/users/173165401864142858/) with this hash: {hash:X08}");
+                await messageBoxService.MessageBox($"An unknown version of the game is installed. Please get the game from an official source.\n\rIf your game is from an official source please write a message on [the WrathEd/Nanoswarm Discord](https://discord.gg/BcE3HB9W6e) with this hash: {hash:X08}");
                 _app.Shutdown(-1);
+                return;
             }
             else if (executableType == ExecutableType.Retail)
             {
                 await messageBoxService.MessageBox("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
                 _app.Shutdown(-1);
+                return;
             }
-            while (!_isConsoleCancel)
+            _tracer.TraceInfo("Launching {0} executable", executableType.ToString());
+            // IntPtr hCloseSplash = Kernel32.CreateEventA(IntPtr.Zero, false, false, "LauncherCloseSplashscreen");
+            DateTime now = DateTime.Now;
+            while (true)
             {
                 ++tries;
+                _tracer.TraceInfo($"Attempt #{tries}");
                 if (tries > 20)
                 {
                     if (await messageBoxService.MessageBox("Windows caching interferred with injecting into the game, do you want to try again?", "Error", MessageBoxButtonType.YesNo) == MessageBoxResultType.Yes)
@@ -200,7 +226,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", _args)} -config \"{config ?? System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" {(modconifg is null ? string.Empty : $"-modconfig \"{modconifg}\"")}",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", _args)} -config \"{config ?? Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" -modconfig \"{modconifg ?? Path.Combine(Environment.CurrentDirectory, "GenEvo_B0.1.skudef")}\"",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
@@ -209,7 +235,10 @@ namespace NanoswarmHive
                                             null,
                                             ref si,
                                             ref pi);
+                    _tracer.TraceInfo("Process created");
+                    System.Threading.Thread.MemoryBarrier();
                     EZHook.Inject(pi.DwProcessId, "Nanocore.dll", pi.DwThreadId, executableType);
+                    _tracer.TraceInfo("Process injected");
                 }
                 catch (ApplicationException ex)
                 {
@@ -223,6 +252,7 @@ namespace NanoswarmHive
                     Kernel32.TerminateProcess(pi.HProcess, -1);
                     Kernel32.ResumeThread(pi.HThread);
                     Kernel32.WaitForSingleObject(pi.HProcess, -1);
+                    _tracer.TraceInfo("Process terminated, retrying");
                     continue;
                 }
                 catch (Exception ex)
@@ -231,6 +261,21 @@ namespace NanoswarmHive
                     await messageBoxService.MessageBox(ex.Message);
                 }
                 break;
+            }
+            while (true)
+            {
+                if ((DateTime.Now - now).TotalMilliseconds > 5000)
+                {
+                    splashScreen.Close();
+                    break;
+                }
+                // int waitResult = Kernel32.WaitForSingleObject(hCloseSplash, 500);
+                // if (waitResult == 0)
+                // {
+                //     splashScreen.Close();
+                //     break;
+                // }
+                await Task.Delay(50);
             }
             _app.Shutdown(overallTries + tries);
         }
@@ -248,9 +293,9 @@ namespace NanoswarmHive
             }
             User32.ShowWindow(hConsole, 5);
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.CancelKeyPress += ConsoleCancel;
-#endif
             Tracer.TraceWrite += TraceWrite;
+            Tracer.SetTraceLevel(6);
+#endif
             Kernel32.Win32FindDataW findFileData = new Kernel32.Win32FindDataW();
             IntPtr hSearch = Kernel32.FindFirstFileW("lotrsec.big", ref findFileData);
             if (hSearch == (IntPtr)(-1))

@@ -2,6 +2,8 @@
 using Nanocore.Core.Diagnostics;
 using Nanocore.Native;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -10,6 +12,12 @@ namespace Nanocore
     public class Nanohook : IEntryPoint
     {
         private static readonly Tracer _tracer = Tracer.GetTracer(nameof(Nanohook), "Main entry point for injection.");
+        private static readonly List<LocalHook> _hooks = new List<LocalHook>();
+
+#if DEBUG
+        private static readonly Stream _stream = new FileStream("debug.log", FileMode.Create, FileAccess.Write, FileShare.None);
+        private static readonly StreamWriter _writer = new StreamWriter(_stream);
+#endif
 
         public Nanohook(RemoteHooking.IContext context, int threadId, ExecutableType executableType)
         {
@@ -30,6 +38,10 @@ namespace Nanocore
 
         private static void Log(string source, TraceEventType eventType, string message)
         {
+#if DEBUG
+            _writer.WriteLine($"{DateTime.Now:hh:mm:ss.fff} [{source}:{eventType}] {message}");
+            _writer.Flush();
+#endif
             Console.Write(DateTime.Now.ToString("hh:mm:ss.fff "));
             ConsoleColor backupForeground;
             ConsoleColor backupBackground;
@@ -111,7 +123,8 @@ namespace Nanocore
                         }
                         LocalHook hook = LocalHook.Create(fnPtr, Delegate.CreateDelegate(fieldInfo.FieldType, fn), null);
                         hook.ThreadACL.SetExclusiveACL(new[] { 0 });
-                        _tracer.TraceNote("Hook {0}.{1} enabled.", type.Name, hookFunctionAttribute.FunctionName);
+                        _hooks.Add(hook);
+                        _tracer.TraceNote("Hook {0}.{1} enabled @0x{2:X08}.", type.Name, hookFunctionAttribute.FunctionName, fnPtr.ToInt32());
                     }
                     else if (fieldInfo.GetCustomAttribute<GameFunctionAttribute>() is GameFunctionAttribute gameFunctionAttribute)
                     {
@@ -171,8 +184,10 @@ namespace Nanocore
             CncOnline.ModifyPublicKey(process);
             LocalHook getHostByName = LocalHook.Create(NativeLibrary.GetExport(Ws2_32.HModule, "gethostbyname"), new Ws2_32.GetHostByNameDelegate(CncOnline.GetHostByName), null);
             getHostByName.ThreadACL.SetExclusiveACL(new[] { 0 });
+            _hooks.Add(getHostByName);
             LocalHook send = LocalHook.Create(NativeLibrary.GetExport(Ws2_32.HModule, "send"), new Ws2_32.SendDelegate(CncOnline.Send), null);
             send.ThreadACL.SetExclusiveACL(new[] { 0 });
+            _hooks.Add(send);
 
             InitializeHooks(exeType);
 

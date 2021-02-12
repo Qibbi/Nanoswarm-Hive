@@ -8,6 +8,7 @@
         mc:Ignorable="d"
         ResizeMode="CanMinimize"
         SizeToContent="WidthAndHeight"
+        Title="{Binding Title}"
         d:DataContext="{d:DesignInstance local:MainWindowViewModel}">
     <Window.Resources>
         <ResourceDictionary>

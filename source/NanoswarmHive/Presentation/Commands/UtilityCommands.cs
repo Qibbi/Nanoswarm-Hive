@@ -1,8 +1,10 @@
-﻿using NanoswarmHive.Presentation.View;
+﻿using NanoswarmHive.Presentation.Services;
+using NanoswarmHive.Presentation.View;
 using NanoswarmHive.Presentation.ViewModel;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -15,11 +17,19 @@ namespace NanoswarmHive.Presentation.Commands
         private static readonly Lazy<ICommandBase> _lazyOpenHyperlinkCommand = new Lazy<ICommandBase>(OpenHyperlinkCommandFactory);
 
         public static ICommandBase DisabledCommand => _lazyDisabledCommand.Value;
-        public static ICommandBase OpenHyperlinkCommand => _lazyOpenHyperlinkCommand.Value;
+        public static ICommandBase OpenHyperlinkCommand
+        {
+            get
+            {
+                ICommandBase result = _lazyOpenHyperlinkCommand.Value;
+                _lazyServiceProvider.Value.Get<IDispatcherService>().LowPriorityInvokeAsync(() => result.RaiseCanExecuteChanged(EventArgs.Empty));
+                return result;
+            }
+        }
 
         private static bool CanOpenHyperlink(string url)
         {
-            return !string.IsNullOrEmpty(url) && Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute);
+            return !string.IsNullOrEmpty(url) && (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute) || (new Uri(url).IsFile && File.Exists(url)));
         }
 
         private static void OpenHyperlink(string url)

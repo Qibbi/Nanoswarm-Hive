@@ -20,6 +20,7 @@ namespace Nanocore.Native
             OpenThread = Marshal.GetDelegateForFunctionPointer<OpenThreadDelegate>(NativeLibrary.GetExport(HModule, nameof(OpenThread)));
             ResumeThread = Marshal.GetDelegateForFunctionPointer<ResumeThreadDelegate>(NativeLibrary.GetExport(HModule, nameof(ResumeThread)));
             // SynchApi
+            CreateEventA = Marshal.GetDelegateForFunctionPointer<CreateEventADelegate>(NativeLibrary.GetExport(HModule, nameof(CreateEventA)));
             WaitForSingleObject = Marshal.GetDelegateForFunctionPointer<WaitForSingleObjectDelegate>(NativeLibrary.GetExport(HModule, nameof(WaitForSingleObject)));
             // MemoryApi
             VirtualProtect = Marshal.GetDelegateForFunctionPointer<VirtualProtectDelegate>(NativeLibrary.GetExport(HModule, nameof(VirtualProtect)));

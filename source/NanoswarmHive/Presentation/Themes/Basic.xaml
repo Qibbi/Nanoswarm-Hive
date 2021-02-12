@@ -101,12 +101,11 @@
                     </ControlTemplate.Resources>
                     <StackPanel Orientation="Horizontal">
                         <Button d:DataContext="{d:DesignInstance c:WindowButtonInfo}"
-                                x:Name="PART_ScrollLeft"
                                 Width="35"
                                 Height="35"
                                 Margin="0"
                                 Padding="0"
-                                Command="{Binding Command}">
+                                Command="{Binding ButtonLeft.Command, RelativeSource={RelativeSource TemplatedParent}}">
                             <Button.Template>
                                 <ControlTemplate TargetType="{x:Type Button}">
                                     <Grid>
@@ -155,10 +154,9 @@
                         </ScrollViewer>
                         <Border Width="13" />
                         <Button d:DataContext="{d:DesignInstance c:WindowButtonInfo}"
-                                x:Name="PART_ScrollRight"
                                 Width="35"
                                 Height="35"
-                                Command="{Binding Command}">
+                                Command="{Binding ButtonRight.Command, RelativeSource={RelativeSource TemplatedParent}}">
                             <Button.Template>
                                 <ControlTemplate TargetType="{x:Type Button}">
                                     <Grid>

@@ -20,6 +20,11 @@ namespace NanoswarmHive.Presentation.Commands
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        public void RaiseCanExecuteChanged(EventArgs args)
+        {
+            CanExecuteChanged?.Invoke(this, args);
+        }
+
         public bool CanExecute()
         {
             return CanExecute(null);

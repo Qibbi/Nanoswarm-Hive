@@ -20,7 +20,7 @@ namespace Nanocore.Sage
         public string BaseURL { get; } = "http://na.llnet.eadownloads.ea.com/u/f/eagames/redalert3/patches/";
         public string InstallPath { get; } = null;
         public string Readme { get; } = null;
-        public string DisplayName { get; } = "Red Alert 3";
+        public string DisplayName { get; internal set; } = "Red Alert 3";
         public string Ergc { get; } = "unknown";
 
         public Registry()

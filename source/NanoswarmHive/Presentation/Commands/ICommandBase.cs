@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System;
+using System.Windows.Input;
 
 namespace NanoswarmHive.Presentation.Commands
 {
@@ -7,5 +8,7 @@ namespace NanoswarmHive.Presentation.Commands
         bool IsEnabled { get; set; }
 
         void Execute();
+
+        void RaiseCanExecuteChanged(EventArgs args);
     }
 }

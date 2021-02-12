@@ -9,21 +9,18 @@ using System.Windows.Controls;
 namespace NanoswarmHive.Presentation.Controls
 {
     [TemplatePart(Name = _scrollViewerPartName, Type = typeof(ScrollViewer))]
-    [TemplatePart(Name = _scrollLeftButtonPartName, Type = typeof(Button))]
-    [TemplatePart(Name = _scrollRightButtonPartName, Type = typeof(Button))]
     public class ButtonScrollbar : ItemsControl
     {
         private const string _scrollViewerPartName = "PART_ScrollViewer";
-        private const string _scrollLeftButtonPartName = "PART_ScrollLeft";
-        private const string _scrollRightButtonPartName = "PART_ScrollRight";
+
+        public static readonly DependencyProperty ItemsPerPageProperty =
+            DependencyProperty.Register(nameof(ItemsPerPage), typeof(int), typeof(ButtonScrollbar), new PropertyMetadata(5));
 
         private readonly ICommandBase _scrollLeft;
         private readonly ICommandBase _scrollRight;
 
         private readonly IViewModelServiceProvider _serviceProvider;
         private ScrollViewer _scrollViewer;
-        private Button _scrollLeftButton;
-        private Button _scrollRightButton;
         private int _scrollSteps;
         private int _currentScrollStep;
         private double _scrollRange;
@@ -37,6 +34,7 @@ namespace NanoswarmHive.Presentation.Controls
         {
             Command = _scrollRight
         };
+        public int ItemsPerPage { get => (int)GetValue(ItemsPerPageProperty); set => SetValue(ItemsPerPageProperty, value); }
 
         public event RoutedEventHandler ScrollStarted;
         public event RoutedEventHandler ScrollEnded;
@@ -51,7 +49,8 @@ namespace NanoswarmHive.Presentation.Controls
 
         private void OnLoaded(object sender, RoutedEventArgs args)
         {
-            _scrollSteps = (int)(_scrollViewer.ExtentWidth / _scrollViewer.ActualWidth) - 1;
+            // _scrollSteps = (int)(_scrollViewer.ExtentWidth / _scrollViewer.ActualWidth) - 1;
+            _scrollSteps = (Items.Count / ItemsPerPage) - ((Items.Count % ItemsPerPage == 0) ? 1 : 0);
             _currentScrollStep = 0;
             _scrollRange = _scrollViewer.ActualWidth;
             _scrollLeft.IsEnabled = false;
@@ -115,18 +114,6 @@ namespace NanoswarmHive.Presentation.Controls
                 throw new InvalidOperationException($"A part named {_scrollViewerPartName} of type {typeof(ScrollViewer)} has to exist in the ControlTemplate.");
             }
             _scrollViewer.ScrollToHorizontalOffset(2.0);
-            _scrollLeftButton = GetTemplateChild(_scrollLeftButtonPartName) as Button;
-            if (_scrollLeftButton is null)
-            {
-                throw new InvalidOperationException($"A part named {_scrollLeftButtonPartName} of type {typeof(Button)} has to exist in the ControlTemplate.");
-            }
-            _scrollLeftButton.DataContext = ButtonLeft;
-            _scrollRightButton = GetTemplateChild(_scrollRightButtonPartName) as Button;
-            if (_scrollRightButton is null)
-            {
-                throw new InvalidOperationException($"A part named {_scrollRightButtonPartName} of type {typeof(Button)} has to exist in the ControlTemplate.");
-            }
-            _scrollRightButton.DataContext = ButtonRight;
         }
     }
 }

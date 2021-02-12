@@ -1,12 +1,12 @@
 ﻿using Nanocore.Sage;
 using NanoswarmHive.Presentation.Commands;
 using NanoswarmHive.Presentation.Controls;
-using NanoswarmHive.Presentation.Services;
 using NanoswarmHive.Presentation.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -16,16 +16,16 @@ namespace NanoswarmHive
 {
     public class MainWindowViewModel : ADispatcherViewModel
     {
-        private DialogResultType _dialogResult;
         private ImageSource _backgroundImageSource;
         private IEnumerable<AViewModelBase> _buttons;
+        private string _title;
 
         internal Window _window;
 
         private WindowButtonInfo ButtonPlay => new WindowButtonInfo
         {
             Content = new TranslatedTextBlock { DisplayText = "GUI:Play" },
-            Command = new AnonymousCommand(ServiceProvider, ExecutePlay)
+            Command = new AnonymousTaskCommand(ServiceProvider, ExecutePlay)
         };
 
         private WindowButtonInfo ButtonCheckForUpdates => new WindowButtonInfo
@@ -73,25 +73,33 @@ namespace NanoswarmHive
         {
             Content = new TranslatedTextBlock { DisplayText = "GUI:VisitWebsite" },
             Command = UtilityCommands.OpenHyperlinkCommand,
-            CommandParameter = ""
+            CommandParameter = "https://www.moddb.com/mods/command-and-conquer-generals-evolution"
         };
 
         private WindowButtonInfo ButtonJoinDiscord => new WindowButtonInfo
         {
             Content = new TranslatedTextBlock { DisplayText = "GUI:JoinDiscord" },
             Command = UtilityCommands.OpenHyperlinkCommand,
-            CommandParameter = "https://discord.gg/cUMrGFcqU3"
+            CommandParameter = "https://discord.com/invite/wnmRFypsRp"
         };
 
-        public DialogResultType DialogResult => _dialogResult;
+        private WindowButtonInfo ButtonVisitPatreon => new WindowButtonInfo
+        {
+            Content = new TranslatedTextBlock { DisplayText = "GUI:VisitPatreon" },
+            Command = UtilityCommands.OpenHyperlinkCommand,
+            CommandParameter = "https://www.patreon.com/GunshipMarkII"
+        };
+
         public ImageSource BackgroundImage { get => _backgroundImageSource; set => SetValue(ref _backgroundImageSource, value); }
         public IEnumerable<AViewModelBase> Buttons { get => _buttons; set => SetValue(ref _buttons, value); }
+        public string Title { get => _title; set => SetValue(ref _title, value); }
+        public string Readme => ServiceProvider.Get<Registry>().Readme;
 
         public MainWindowViewModel(IViewModelServiceProvider serviceProvider) : base(serviceProvider)
         {
-            _dialogResult = DialogResultType.None;
-            ButtonReadme.CommandParameter = serviceProvider.Get<Registry>().Readme;
             Buttons = GetButtons();
+            ButtonReadme.CommandParameter = serviceProvider.Get<Registry>().Readme;
+            _title = serviceProvider.Get<Registry>().DisplayName;
         }
 
         private ICollection<AViewModelBase> GetButtons()
@@ -99,38 +107,32 @@ namespace NanoswarmHive
             return new AViewModelBase[]
             {
                 ButtonPlay,
-                ButtonCheckForUpdates,
-                ButtonSetLanguage,
-                ButtonWorldBuilder,
-                ButtonQuit,
-                ButtonGameBrowser,
-                ButtonReadme,
+                // ButtonCheckForUpdates,
+                // ButtonWorldBuilder,
                 ButtonVisitWebsite,
                 ButtonJoinDiscord,
+                ButtonVisitPatreon,
+                ButtonQuit,
+                ButtonReadme,
+                // ButtonGameBrowser,
+                ButtonSetLanguage,
+                WindowButtonFreeSpaceInfo.Default,
                 WindowButtonFreeSpaceInfo.Default,
                 WindowButtonFreeSpaceInfo.Default
             }.ToList();
         }
 
-        private void ExecutePlay()
+        private async Task ExecutePlay()
         {
-            _dialogResult = DialogResultType.Yes;
-            SystemCommands.CloseWindow(_window);
+            // SystemCommands.CloseWindow(_window);
+            _window.Hide();
+            await Program.Launch(ServiceProvider, true);
+            _window.Show();
         }
 
         private void ExecuteQuit()
         {
             SystemCommands.CloseWindow(_window);
-        }
-
-        public bool IsStartGame()
-        {
-            return _dialogResult == DialogResultType.Yes;
-        }
-
-        public void SetStartGame()
-        {
-            _dialogResult = DialogResultType.Yes;
         }
 
         public void LoadBackground()
