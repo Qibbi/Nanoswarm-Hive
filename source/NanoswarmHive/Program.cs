@@ -87,9 +87,17 @@ namespace NanoswarmHive
             }
             else
             {
-                await messageBoxService.MessageBox($"Language pack '{registry.Language}' is not installed.");
-                _app.Shutdown(-1);
-                return;
+                csfPath = Path.Combine(Environment.CurrentDirectory, "Launcher", "english.csf");
+                if (File.Exists(csfPath))
+                {
+                    TranslationManager.Current.LoadStrings(csfPath);
+                }
+                else
+                {
+                    await messageBoxService.MessageBox($"Language pack '{registry.Language}' is not installed.");
+                    _app.Shutdown(-1);
+                    return;
+                }
             }
             ViewModelServiceProvider serviceProvider = new ViewModelServiceProvider(new List<object>
                 {
@@ -183,6 +191,10 @@ namespace NanoswarmHive
                     case 0x15A0610Du:
                         executableType = ExecutableType.Origin;
                         break;
+                    case 0x75DA0A02u: // Origin with activation
+                    case 0x13F3E041u:
+                        executableType = ExecutableType.OriginActivation;
+                        break;
                     case 0x2187AF73u:
                     case 0xA05DEB39u:
                         executableType = ExecutableType.Retail;
@@ -199,9 +211,16 @@ namespace NanoswarmHive
                 _app.Shutdown(-1);
                 return;
             }
+            else if (executableType == ExecutableType.OriginActivation)
+            {
+                await messageBoxService.MessageBox("The origin version installed requires Origin Authentication and is not yet supported. For now you can use the alternate installation and launch method to play.");
+                _app.Shutdown(-1);
+                return;
+            }
             else if (executableType == ExecutableType.Retail)
             {
-                await messageBoxService.MessageBox("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
+                await messageBoxService.MessageBox("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM, thus you have to use the alternate installation and launch method to play.");
+                // await messageBoxService.MessageBox("The retail or an old origin version is installed. If you are using Origin please update the game. Retail versions cannot be supported due to SecuROM.");
                 _app.Shutdown(-1);
                 return;
             }
