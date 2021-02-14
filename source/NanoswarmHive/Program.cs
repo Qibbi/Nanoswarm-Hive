@@ -122,6 +122,15 @@ namespace NanoswarmHive
             }
         }
 
+        private static void CopyCursors(string source, string destination)
+        {
+            DirectoryInfo dInfo = Directory.CreateDirectory(destination);
+            foreach (string str in Directory.GetFiles(source))
+            {
+                File.Copy(str, Path.Combine(dInfo.FullName, Path.GetFileName(str)));
+            }
+        }
+
         public static async Task Launch(IViewModelServiceProvider serviceProvider, bool useGui)
         {
             MessageBoxService messageBoxService = serviceProvider.Get<MessageBoxService>();
@@ -169,6 +178,7 @@ namespace NanoswarmHive
             int overallTries = 0;
             int tries = 0;
             string executablePath = Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+            string dataPath = Path.Combine(Environment.CurrentDirectory, "data");
             ExecutableType executableType = ExecutableType.Unknown;
             uint hash;
             using (Stream stream = new FileStream(executablePath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -192,15 +202,74 @@ namespace NanoswarmHive
                         executableType = ExecutableType.Origin;
                         break;
                     case 0x75DA0A02u: // Origin with activation
+                        try
+                        {
+                            if (!Directory.Exists(dataPath))
+                            {
+                                Directory.CreateDirectory(dataPath);
+                            }
+                            if (!File.Exists(Path.Combine(dataPath, "ra3_1.12.game")))
+                            {
+                                byte[] xome = File.ReadAllBytes(Path.Combine("Data", "xome.o.dat"));
+                                for (int idx = 0; idx < xome.Length; ++idx)
+                                {
+                                    buffer[idx] = (byte)(buffer[idx] ^ xome[idx]);
+                                }
+                                using (Stream ostream = new FileStream(Path.Combine(dataPath, "ra3_1.12.game"), FileMode.Create, FileAccess.Write, FileShare.None))
+                                {
+                                    ostream.Write(buffer, 0, xome.Length);
+                                }
+                                CopyCursors(Path.Combine(Path.GetDirectoryName(executablePath), "data", "cursors"), Path.Combine(dataPath, "Data", "Cursors"));
+                            }
+                        }
+                        catch
+                        {
+                            await messageBoxService.MessageBox($"Unable to access filesystem. Please launch in administrator mode (has to be done only once), or use a directory without special priviledges.");
+                            _app.Shutdown(-1);
+                            return;
+                        }
+                        executablePath = Path.Combine(dataPath, "ra3_1.12.game");
+                        executableType = ExecutableType.Origin;
+                        break;
                     case 0x13F3E041u:
-                        executableType = ExecutableType.OriginActivation;
+                        try
+                        {
+                            if (!Directory.Exists(dataPath))
+                            {
+                                Directory.CreateDirectory(dataPath);
+                            }
+                            if (!File.Exists(Path.Combine(dataPath, "ra3_1.12.game")))
+                            {
+                                byte[] xome = File.ReadAllBytes(Path.Combine("Data", "xome.o.dat"));
+                                for (int idx = 0; idx < xome.Length; ++idx)
+                                {
+                                    buffer[idx] = (byte)(buffer[idx] ^ xome[idx]);
+                                }
+                                buffer[0x168] = 0x4F;
+                                buffer[0x169] = 0x2A;
+                                using (Stream ostream = new FileStream(Path.Combine(dataPath, "ra3_1.12.game"), FileMode.Create, FileAccess.Write, FileShare.None))
+                                {
+                                    ostream.Write(buffer, 0, xome.Length);
+                                }
+                                CopyCursors(Path.Combine(Path.GetDirectoryName(executablePath), "data", "cursors"), Path.Combine(dataPath, "Data", "Cursors"));
+                            }
+                        }
+                        catch
+                        {
+                            await messageBoxService.MessageBox($"Unable to access filesystem. Please launch in administrator mode (has to be done only once), or use a directory without special priviledges.");
+                            _app.Shutdown(-1);
+                            return;
+                        }
+                        executablePath = Path.Combine(dataPath, "ra3_1.12.game");
+                        executableType = ExecutableType.Origin;
                         break;
                     case 0x2187AF73u:
                     case 0xA05DEB39u:
                         executableType = ExecutableType.Retail;
                         break;
-                    case 0xBFE68CADu: // should I care? this is mostly here because origins and reloaded exe have the same size
+                    case 0xBFE68CADu: // should I care? this is mostly here because origins and reloaded exe have the same size, not just reloaded, seems to be repackaged by others
                     case 0xD55E5467u:
+                    case 0xD3D7E1F7u:
                         executableType = ExecutableType.ReLOADeD;
                         break;
                 }
