@@ -1,11 +1,14 @@
-﻿using Nanocore;
+﻿using Microsoft.Win32;
+using Nanocore;
 using Nanocore.Core.Diagnostics;
 using Nanocore.Native;
 using Nanocore.Sage;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Windows;
+using Registry = Nanocore.Sage.Registry;
 
 namespace NanoswarmHive
 {
@@ -59,6 +62,7 @@ namespace NanoswarmHive
             args.Cancel = true;
         }
 
+        [STAThread]
         public static int Main(string[] args)
         {
 #if DEBUG
@@ -94,7 +98,7 @@ namespace NanoswarmHive
                 Kernel32.FindClose(hSearch);
             }
             string config = null;
-            string modconifg = null;
+            string modConfig = null;
             List<string> argList = new List<string>(args.Length);
             for (int idx = 0; idx < args.Length; ++idx)
             {
@@ -114,7 +118,7 @@ namespace NanoswarmHive
                         MessageBox.Show("Invalid modconfig parameter. A path needs to be set.");
                         return -1;
                     }
-                    modconifg = args[idx++ + 1];
+                    modConfig = args[idx++ + 1];
                 }
                 else
                 {
@@ -127,9 +131,62 @@ namespace NanoswarmHive
             int overallTries = 0;
             int tries = 0;
             Registry registry = new Registry();
-            string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+            bool isPathValid = false;
+            string executablePath = string.Empty;
+            if (!string.IsNullOrWhiteSpace(registry.InstallPath))
+            {
+                executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+                isPathValid = File.Exists(executablePath);
+            }
+            if (!isPathValid)
+            {
+                MessageBox.Show("Unable to locate a valid Red Alert 3 installation.\n\nPlease locate the game binary manually in the next window.");
+                OpenFileDialog dialog = new OpenFileDialog();
+                dialog.Filter = "RA3 1.12 executable (ra3_1.12.game)|ra3_1.12.game|All files (*.*)|*.*";
+                dialog.DefaultExt = "ra3_1.12.game";
+                dialog.RestoreDirectory = true;
+                bool? result = dialog.ShowDialog();
+                if (result == true)
+                {
+                    executablePath = dialog.FileName;
+                    isPathValid = File.Exists(executablePath);
+                }
+                if (!isPathValid)
+                {
+                    MessageBox.Show("No valid Red Alert 3 binary specified.");
+                    return -1;
+                }
+            }
+            if (config == null)
+            {
+                isPathValid = false;
+                if (!string.IsNullOrWhiteSpace(registry.InstallPath) && !string.IsNullOrWhiteSpace(registry.Language))
+                {
+                    config = System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef");
+                    isPathValid = File.Exists(config);
+                }
+                else
+                {
+                    MessageBox.Show("Unable to locate a valid Red Alert 3 config.\n\nPlease locate the config manually in the next window.");
+                    OpenFileDialog dialog = new OpenFileDialog();
+                    dialog.Filter = "RA3 config (*.skudef)|*.skudef|All files (*.*)|*.*";
+                    dialog.DefaultExt = "*.skudef";
+                    dialog.RestoreDirectory = true;
+                    bool? result = dialog.ShowDialog();
+                    if (result == true)
+                    {
+                        config = dialog.FileName;
+                        isPathValid = File.Exists(config);
+                    }
+                    if (!isPathValid)
+                    {
+                        MessageBox.Show("No valid Red Alert 3 config specified.");
+                        return -1;
+                    }
+                }
+            }
             ExecutableType executableType = ExecutableType.Unknown;
-            using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            using (Stream stream = new FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
             {
                 byte[] buffer = new byte[stream.Length];
                 stream.Read(buffer, 0, buffer.Length);
@@ -155,7 +212,7 @@ namespace NanoswarmHive
             }
             if (executableType == ExecutableType.Unknown)
             {
-                MessageBox.Show("A version of the game is installed. Please get the game from an official source.");
+                MessageBox.Show("An unknown version of the game is installed. Please get the game from an official source.");
                 return -1;
             }
             else if (executableType == ExecutableType.Retail)
@@ -180,7 +237,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{config ?? System.IO.Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" {(modconifg is null ? string.Empty : $"-modconfig \"{modconifg}\"")}",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", args)} -config \"{config}\" {(modConfig is null ? string.Empty : $"-modconfig \"{modConfig}\"")}",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
