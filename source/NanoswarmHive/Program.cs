@@ -143,7 +143,7 @@ namespace NanoswarmHive
             };
             WindowManager.ShowBlockingWindow(splashScreen);
             string config = null;
-            string modconifg = null;
+            string modconfig = null;
             List<string> argList = new List<string>(_args.Length);
             for (int idx = 0; idx < _args.Length; ++idx)
             {
@@ -165,7 +165,7 @@ namespace NanoswarmHive
                         _app.Shutdown(-1);
                         return;
                     }
-                    modconifg = _args[idx++ + 1];
+                    modconfig = _args[idx++ + 1];
                 }
                 else
                 {
@@ -314,7 +314,7 @@ namespace NanoswarmHive
                 }
                 try
                 {
-                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", _args)} -config \"{config ?? Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" -modconfig \"{modconifg ?? Path.Combine(Environment.CurrentDirectory, "GenEvo_B0.1.skudef")}\"",
+                    Kernel32.CreateProcessW(null, $"\"{executablePath}\" {string.Join(" ", _args)} -config \"{config ?? Path.Combine(registry.InstallPath, $"RA3_{registry.Language}_1.12.skudef")}\" -modconfig \"{modconfig ?? Path.Combine(Environment.CurrentDirectory, "GenEvo_B0.1.skudef")}\"",
                                             IntPtr.Zero,
                                             IntPtr.Zero,
                                             true,
