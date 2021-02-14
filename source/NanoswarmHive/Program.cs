@@ -204,13 +204,9 @@ namespace NanoswarmHive
                     case 0x75DA0A02u: // Origin with activation
                         try
                         {
-                            if (!Directory.Exists(dataPath))
-                            {
-                                Directory.CreateDirectory(dataPath);
-                            }
                             if (!File.Exists(Path.Combine(dataPath, "ra3_1.12.game")))
                             {
-                                byte[] xome = File.ReadAllBytes(Path.Combine("Data", "xome.o.dat"));
+                                byte[] xome = File.ReadAllBytes(Path.Combine(dataPath, "xome.o.dat"));
                                 for (int idx = 0; idx < xome.Length; ++idx)
                                 {
                                     buffer[idx] = (byte)(buffer[idx] ^ xome[idx]);
@@ -234,13 +230,9 @@ namespace NanoswarmHive
                     case 0x13F3E041u:
                         try
                         {
-                            if (!Directory.Exists(dataPath))
-                            {
-                                Directory.CreateDirectory(dataPath);
-                            }
                             if (!File.Exists(Path.Combine(dataPath, "ra3_1.12.game")))
                             {
-                                byte[] xome = File.ReadAllBytes(Path.Combine("Data", "xome.o.dat"));
+                                byte[] xome = File.ReadAllBytes(Path.Combine(dataPath, "xome.o.dat"));
                                 for (int idx = 0; idx < xome.Length; ++idx)
                                 {
                                     buffer[idx] = (byte)(buffer[idx] ^ xome[idx]);
