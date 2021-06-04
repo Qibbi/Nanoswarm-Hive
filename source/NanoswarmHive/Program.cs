@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace NanoswarmHive
@@ -145,37 +146,45 @@ namespace NanoswarmHive
             Kernel32.ProcessInformation pi = new Kernel32.ProcessInformation();
             int overallTries = 0;
             int tries = 0;
-            string executablePath = System.IO.Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
-            ExecutableType executableType = ExecutableType.Unknown;
-            uint hash;
-            using (System.IO.Stream stream = new System.IO.FileStream(executablePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            string executablePath = Path.Combine(registry.InstallPath, "data", "ra3_1.12.game");
+
+            var currentHashPath = Path.Combine(AppContext.BaseDirectory, "current-game-hash.txt");
+            var executableType = await Task.Run(() =>
             {
-                byte[] buffer = new byte[stream.Length];
-                stream.Read(buffer, 0, buffer.Length);
-                hash = Nanocore.Core.FastHash.GetHashCode(buffer);
-                hash = 0xDEADBEEF;
-                switch (hash)
+                var supportedVersions = ExecutableCharateristics.GetSupportedVersions();
+                var supportedVersionsPath = Path.Combine(AppContext.BaseDirectory, "supported-versions.txt");
+                if (File.Exists(supportedVersionsPath))
                 {
-                    case 0xCFAAD44Bu:
-                    case 0xE6D223E6u:
-                    case 0xCF5817CCu:
-                        executableType = ExecutableType.Steam;
-                        break;
-                    case 0xE7AF6A35u:
-                    case 0x2F121290u:
-                        executableType = ExecutableType.Origin;
-                        break;
-                    case 0xA05DEB39: // this has the 4gb thing applied, need to check the original
-                        executableType = ExecutableType.Retail;
-                        break;
-                    case 0xBFE68CAD: // should I care? this is mostly here because origins and reloaded exe have the same size
-                        executableType = ExecutableType.ReLOADeD;
-                        break;
+                    supportedVersions.AddRange(ExecutableCharateristics.GetSupportedVersionsFromFile(supportedVersionsPath));
                 }
-            }
+                using (var gameFile = new FileStream(executablePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var hashes = gameFile.ReadHashes();
+                    var type = supportedVersions.DetectExecutableType(hashes, 0.95, out var similarity);
+
+                    var hashesAsString = string.Join(" ", hashes) + $"\r\n{similarity * 100}% similar with {type}";
+
+                    if (!File.Exists(currentHashPath) || File.ReadAllText(currentHashPath) != hashesAsString)
+                    {
+                        // write down current game hash
+                        File.WriteAllText(currentHashPath, hashesAsString);
+                    }
+                    return type;
+                }
+            });
+
             if (executableType == ExecutableType.Unknown)
             {
-                await messageBoxService.MessageBox($"An unknown version of the game is installed. Please get the game from an official source.\n\rIf your game is from an official source please [write me a message on Discord](https://discordapp.com/users/173165401864142858/) with this hash: {hash:X08}");
+                var result = await messageBoxService.MessageBox($"An unknown version of the game is installed. Please get the game from an official source.\n\rIf your game is from an official source, please click \"OK\" and [write me a message on Discord](https://discordapp.com/users/173165401864142858/) with the hash file.");
+                if (result == MessageBoxResultType.Ok)
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = currentHashPath,
+                        Verb = "open",
+                        UseShellExecute = true
+                    }).Dispose();
+                }
                 _app.Shutdown(-1);
             }
             else if (executableType == ExecutableType.Retail)
